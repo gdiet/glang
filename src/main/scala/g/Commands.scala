@@ -19,3 +19,7 @@ case class SAVE_CONST_TO_ADDRESS(const: Seq[Int], address: Int) extends Command:
 object DEF { val matcher: Regex = s"DEF $MATCH_NAME (.+)".r }
 case class DEF(name: String, args: List[String]) extends Command:
   override def toString: String = s"DEF $name ${args.mkString(" ")}"
+
+object ADD_REFERENCE { val matcher: Regex = s"ADD $MATCH_NAME".r }
+case class ADD_REFERENCE(reference: String) extends Command:
+  override def toString: String = s"ADD $reference"

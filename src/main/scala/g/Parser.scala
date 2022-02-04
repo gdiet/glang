@@ -19,6 +19,8 @@ object Parser extends ClassLogging:
         Some(SAVE_CONST_TO_ADDRESS(const.map(_-'0'), address.toInt))
       case DEF.matcher(name, args) =>
         Some(DEF(name, args.split(" ").toList))
+      case ADD_REFERENCE.matcher(reference) =>
+        Some(ADD_REFERENCE(reference))
 
       case "" | commentMatcher() => None
       case other => fail(s"Don't understand line [$line]")
