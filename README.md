@@ -1,1 +1,2 @@
-# glang
+# G Language
+
