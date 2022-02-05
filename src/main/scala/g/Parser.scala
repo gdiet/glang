@@ -8,7 +8,8 @@ object Parser extends ClassLogging:
   def parse(script: String): Vector[Command] =
     script.linesIterator.toVector.flatMap { line =>
       info(s"Parsing: $line")
-      parseLine(line).tap(parseResult => info(s"=======> ${parseResult.getOrElse("")}"))
+      val replaced = line.replaceAll("\\$REGISTER_WIDTH", s"$REGISTER_WIDTH")
+      parseLine(replaced).tap(parseResult => info(s"=======> ${parseResult.getOrElse("")}"))
     }
 
   def parseLine(line: String): Option[Command] =
@@ -21,6 +22,10 @@ object Parser extends ClassLogging:
         Some(DEF(name, args.split(" ").toList))
       case ADD_REFERENCE.matcher(reference) =>
         Some(ADD_REFERENCE(reference))
+      case ADD_DIGIT.matcher(digit) =>
+        Some(ADD_DIGIT(digit.toInt))
+      case IF_OVERFLOW.matcher(offset, commandString) =>
+        Some(IF_OVERFLOW(offset.toInt, parseLine(commandString).getOrElse(fail(s"Should not happen."))))
 
       case "" | commentMatcher() => None
       case other => fail(s"Don't understand line [$line]")
