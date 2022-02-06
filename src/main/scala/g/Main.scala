@@ -17,3 +17,7 @@ val script =
 @main def run(): Unit =
   val commands = Parser.parse(script)
   Executor.run(commands)
+
+@main def plan(): Unit =
+  val commands = Parser.parse(script)
+  Planner.plan(commands)
