@@ -10,6 +10,8 @@ import Main.*
       |PRINT ACC
       |SAVE 0123456789012345 TO 0
       |PRINT 0
+      |ADD 0
+      |PRINT ACC
       |""".stripMargin
 /*
       |DEF addition x ADDRESS

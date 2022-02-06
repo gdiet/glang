@@ -19,6 +19,7 @@ object Parser extends ClassLogging:
       case IS_LOAD(c) => Some(c)
       case IS_PRINT(c) => Some(c)
       case IS_SAVE(c) => Some(c)
+      case IS_ADD(c) => Some(c)
       case IS_DEF(c) => Some(c)
       case IS_NOP(c) => Some(c) // Must be last as long as it has no fall-through.
       case other => fail(s"Don't understand tokens $tokens")
@@ -54,6 +55,13 @@ object IS_SAVE:
     tokens match
       case List("SAVE", Is_Constant(constant), "TO", Is_Address(address)) =>
         Some(SAVECONST(constant, address))
+      case other => None
+
+case class ADDADDRESS(address: Address) extends Command
+object IS_ADD:
+  def unapply(tokens: List[String]): Option[ADDADDRESS] =
+    tokens match
+      case List("ADD", Is_Address(address)) => Some(ADDADDRESS(address))
       case other => None
 
 case class DEF(name: String, params: List[NamedAddress]) extends Command
