@@ -10,7 +10,7 @@ The REGISTER_WIDTH default is 16 decimal digits. Set environment variable G_REGI
 * Lines starting with `// ` are ignored.
 * One command per line.
 * Commands and other keywords are UPPER CASE.
-* User defined names are lower case.
+* User defined names are lower case including `_`.
 * $REGISTER_WIDTH can be used.
 
 ### Commands

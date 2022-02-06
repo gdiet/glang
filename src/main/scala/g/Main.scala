@@ -6,7 +6,9 @@ import Main.*
 @main def run(): Unit =
   val script =
     """
-      |DEF addition x ADDRESS
+      |LOAD 0123456789012345
+    """.stripMargin
+/*
       |ADD x
       |IF OVERFLOW +1 ADD 1
       |CLEAR OVERFLOW $REGISTER_WIDTH
@@ -24,5 +26,5 @@ import Main.*
       |SAVE 0123456789012345 TO 1
       |CALL addition 1
       |PRINT
-      |""".stripMargin
+*/
   Parser.parse(script)

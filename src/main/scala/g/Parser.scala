@@ -15,28 +15,49 @@ object Parser extends ClassLogging:
 
   def parse(replace: Map[String, String], tokens: List[String]): Option[Command] =
     tokens match
-      case Nil | List("//") => None
-      case DEF(sub) => Some(sub)
+      case DEF(c) => Some(c)
+      case LOAD(c) => Some(c)
+      case NOP(c) => Some(c) // Must be last as long as it has no fall-through.
       case other => fail(s"Don't understand tokens $tokens")
 
 sealed trait Command
 
-case class DEF(name: String) extends Command
+case class NOP(tokens: List[String]) extends Command
+object NOP:
+  def unapply(tokens: List[String]): Option[NOP] =
+    tokens match
+      case Nil | List("//") => Some(NOP(tokens))
+      case other => Some(NOP(tokens)) // FIXME replace by None
+
+case class LOAD(constant: Constant) extends Command
+object LOAD:
+  def unapply(tokens: List[String]): Option[LOAD] =
+    tokens match
+      case List("LOAD", Constant(constant)) => Some(LOAD(constant))
+      case other => None
+
+case class DEF(name: String, params: List[NamedAddress]) extends Command
 object DEF:
   def unapply(tokens: List[String]): Option[DEF] =
     tokens match
-      case List("DEF", Name(name)) => Some(DEF(name))
+      case "DEF" :: Name(name) :: DefParams(params) =>
+        Some(DEF(name, params))
+      case other => None
+
+object DefParams:
+  def unapply(tokens: List[String]): Option[List[NamedAddress]] =
+    tokens match
+      case Name(name) :: "ADDRESS" :: DefParams(params) => Some(NamedAddress(name) :: params)
       case other => None
 
 case class NamedAddress(name: String)
+case class Constant(value: String)
 
-object DEF_PARAMS:
-  def unapply(tokens: List[String]): Option[List[NamedAddress]] =
-    tokens match
-      case Name(name) :: DEF_PARAMS(params) => Some(NamedAddress(name) :: params)
-      case other => None
+object Constant:
+  def unapply(string: String): Option[Constant] =
+    if string.matches(s"[0-9]{$REGISTER_WIDTH}") then Some(Constant(string)) else None
 
 object Name:
   def unapply(string: String): Option[String] =
-    if string.matches("[a-z_]") then Some(string) else None
+    if string.matches("[a-z_]+") then Some(string) else None
 
