@@ -10,21 +10,31 @@ object Parser extends ClassLogging:
     script.linesIterator.toList.flatMap { line =>
       info(s"Parsing: $line")
       val tokens = line.split(' ').filterNot(_.isBlank).toList
-      val replace = Map("$REGISTER_WIDTH" -> s"$REGISTER_WIDTH")
-      parse(replace, tokens).tap(parseResult => info(s"=======> ${parseResult.getOrElse("")}"))
+      IS_COMMAND.unapply(tokens).tap(parseResult => info(s"=======> ${parseResult.getOrElse("")}"))
     }.tap(_ => info("Parsing finished."))
 
-  def parse(replace: Map[String, String], tokens: List[String]): Option[Command] =
+sealed trait Command
+
+object IS_COMMAND:
+  def unapply(tokens: List[String]): Option[Command] =
     tokens match
       case IS_LOAD(c) => Some(c)
       case IS_PRINT(c) => Some(c)
       case IS_SAVE(c) => Some(c)
       case IS_ADD(c) => Some(c)
+      case IS_CLEAR(c) => Some(c)
+      case IS_SET(c) => Some(c)
+      case IS_IF(c) => Some(c)
       case IS_DEF(c) => Some(c)
       case IS_NOP(c) => Some(c) // Must be last as long as it has no fall-through.
       case other => fail(s"Don't understand tokens $tokens")
 
-sealed trait Command
+case class IFCURRY(command: Command) extends Command
+object IS_IF:
+  def unapply(tokens: List[String]): Option[IFCURRY] =
+    tokens match
+      case "IF" :: "CURRY" :: IS_COMMAND(command) => Some(IFCURRY(command))
+      case other => None
 
 case class NOP(tokens: List[String]) extends Command
 object IS_NOP:
@@ -41,12 +51,26 @@ object IS_LOAD:
       case other => None
 
 case class PRINTADDRESS(address: Address) extends Command
-case object PRINTACC extends Command
+case object PRINTPROCESSOR extends Command
 object IS_PRINT:
-  def unapply(tokens: List[String]): Option[PRINTACC.type | PRINTADDRESS] =
+  def unapply(tokens: List[String]): Option[PRINTPROCESSOR.type | PRINTADDRESS] =
     tokens match
-      case List("PRINT", "ACC") => Some(PRINTACC)
+      case List("PRINT", "PROCESSOR") => Some(PRINTPROCESSOR)
       case List("PRINT", Is_Address(address)) => Some(PRINTADDRESS(address))
+      case other => None
+
+case object CLEARFLAG extends Command
+object IS_CLEAR:
+  def unapply(tokens: List[String]): Option[CLEARFLAG.type] =
+    tokens match
+      case List("CLEAR", "FLAG") => Some(CLEARFLAG)
+      case other => None
+
+case object SETFLAG extends Command
+object IS_SET:
+  def unapply(tokens: List[String]): Option[SETFLAG.type] =
+    tokens match
+      case List("SET", "FLAG") => Some(SETFLAG)
       case other => None
 
 case class SAVECONST(constant: Constant, to: Address) extends Command

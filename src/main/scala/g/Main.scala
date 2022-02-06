@@ -7,11 +7,12 @@ import Main.*
   val script =
     """
       |LOAD 0123456789012345
-      |PRINT ACC
       |SAVE 0123456789012345 TO 0
-      |PRINT 0
       |ADD 0
-      |PRINT ACC
+      |CLEAR FLAG
+      |PRINT PROCESSOR
+      |IF CURRY SET FLAG
+      |PRINT PROCESSOR
       |""".stripMargin
 /*
       |DEF addition x ADDRESS
