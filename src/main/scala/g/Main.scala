@@ -7,8 +7,10 @@ import Main.*
   val script =
     """
       |LOAD 0123456789012345
+      |PRINT ACC
     """.stripMargin
 /*
+      |DEF addition x ADDRESS
       |ADD x
       |IF OVERFLOW +1 ADD 1
       |CLEAR OVERFLOW $REGISTER_WIDTH
@@ -27,4 +29,5 @@ import Main.*
       |CALL addition 1
       |PRINT
 */
-  Parser.parse(script)
+  val commands = Parser.parse(script)
+  Executor.run(commands)
