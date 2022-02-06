@@ -5,17 +5,15 @@ import Main.*
 
 @main def run(): Unit =
   val script =
-    """
-      |LOAD 0123456789012345
+    """LOAD 0123456789012345
       |SAVE 0123456789012345 TO 0
       |ADD 0
-      |CLEAR FLAG
+      |loop CLEAR FLAG
       |IF CURRY SET FLAG
-      |GOTO end
-      |PRINT PROCESSOR
-      |ADD 0
-      |end PRINT PROCESSOR
-      |""".stripMargin
+      |IF NOT FLAG GOTO end
+      |ADD CURRYRIGHT
+      |GOTO loop
+      |end PRINT PROCESSOR""".stripMargin
 /*
 LOAD 0123456789012345
 SAVE 0123456789012345 TO 0

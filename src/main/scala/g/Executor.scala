@@ -14,7 +14,8 @@ object Executor extends ClassLogging:
   def runAtPosition(state: ProcessorState, commands: List[Command], position: Int): Unit =
     if commands.size > position then
       val command = commands(position)
-      info(s"$command")
+      Thread.sleep(500)
+      info(f"${position + 1}%2d $command")
       val nextPosition = runCommand(state, commands, commands(position), position)
       runAtPosition(state, commands, nextPosition)
 
@@ -24,6 +25,8 @@ object Executor extends ClassLogging:
       // Commands that might change the position arbitrarily.
       case IFCURRY(conditional) =>
         if state.curry.contains(true) then runCommand(state, commands, conditional, position) else position + 1
+      case IFNOTFLAG(conditional) =>
+        if !state.flag then runCommand(state, commands, conditional, position) else position + 1
       case MARKER(name, command) => runCommand(state, commands, command, position)
       case GOTO(marker) => commands.indexWhere { case MARKER(`marker`, _) => true; case other => false }
       case other =>
@@ -40,6 +43,13 @@ object Executor extends ClassLogging:
           case ADDADDRESS(address) =>
             val (curry, acc) = state.acc.zip(state.mem(address.position))
               .map { case (a,b) => (a+b > 9, (a+b) % 10) }.unzip
+            state.curry = curry; state.acc = acc
+          case ADDCURRY1 =>
+            val (curry, acc) = state.acc.zipWithIndex.map {
+              case (value, index) if index == REGISTER_WIDTH - 1 => false -> value
+              case (value, index) if !state.curry(index + 1) => false -> value
+              case (value, _) => (value == 9, (value + 1) % 10)
+            }.unzip
             state.curry = curry; state.acc = acc
           case CLEARFLAG => state.flag = false
           case SETFLAG => state.flag = true

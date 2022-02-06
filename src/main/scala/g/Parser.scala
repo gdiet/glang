@@ -46,10 +46,12 @@ object IS_GOTO:
       case other => None
 
 case class IFCURRY(command: Command) extends Command
+case class IFNOTFLAG(command: Command) extends Command
 object IS_IF:
-  def unapply(tokens: List[String]): Option[IFCURRY] =
+  def unapply(tokens: List[String]): Option[IFCURRY | IFNOTFLAG] =
     tokens match
       case "IF" :: "CURRY" :: IS_COMMAND(command) => Some(IFCURRY(command))
+      case "IF" :: "NOT" :: "FLAG" :: IS_COMMAND(command) => Some(IFNOTFLAG(command))
       case other => None
 
 case class NOP(tokens: List[String]) extends Command
@@ -98,10 +100,12 @@ object IS_SAVE:
       case other => None
 
 case class ADDADDRESS(address: Address) extends Command
+case object ADDCURRY1 extends Command
 object IS_ADD:
-  def unapply(tokens: List[String]): Option[ADDADDRESS] =
+  def unapply(tokens: List[String]): Option[ADDADDRESS | ADDCURRY1.type] =
     tokens match
       case List("ADD", Is_Address(address)) => Some(ADDADDRESS(address))
+      case List("ADD", "CURRYRIGHT") => Some(ADDCURRY1)
       case other => None
 
 case class DEF(name: String, params: List[NamedAddress]) extends Command
