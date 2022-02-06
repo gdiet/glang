@@ -26,8 +26,24 @@ object IS_COMMAND:
       case IS_SET(c) => Some(c)
       case IS_IF(c) => Some(c)
       case IS_DEF(c) => Some(c)
+      case IS_MARKER(c) => Some(c)
+      case IS_GOTO(c) => Some(c)
       case IS_NOP(c) => Some(c) // Must be last as long as it has no fall-through.
       case other => fail(s"Don't understand tokens $tokens")
+
+case class MARKER(name: String, command: Command) extends Command
+object IS_MARKER:
+  def unapply(tokens: List[String]): Option[MARKER] =
+    tokens match
+      case Is_Name(name) :: IS_COMMAND(command) => Some(MARKER(name, command))
+      case other => None
+
+case class GOTO(marker: String) extends Command
+object IS_GOTO:
+  def unapply(tokens: List[String]): Option[GOTO] =
+    tokens match
+      case List("GOTO", Is_Name(name)) => Some(GOTO(name))
+      case other => None
 
 case class IFCURRY(command: Command) extends Command
 object IS_IF:
