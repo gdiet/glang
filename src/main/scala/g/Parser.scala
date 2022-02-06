@@ -105,7 +105,7 @@ object IS_ADD:
   def unapply(tokens: List[String]): Option[ADDADDRESS | ADDCURRY1.type] =
     tokens match
       case List("ADD", Is_Address(address)) => Some(ADDADDRESS(address))
-      case List("ADD", "CURRYRIGHT") => Some(ADDCURRY1)
+      case List("ADD", "CURRY", "RIGHT") => Some(ADDCURRY1)
       case other => None
 
 case class DEF(name: String, params: List[NamedAddress]) extends Command
