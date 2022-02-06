@@ -8,7 +8,9 @@ import Main.*
     """
       |LOAD 0123456789012345
       |PRINT ACC
-    """.stripMargin
+      |SAVE 0123456789012345 TO 0
+      |PRINT 0
+      |""".stripMargin
 /*
       |DEF addition x ADDRESS
       |ADD x
