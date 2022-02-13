@@ -12,6 +12,7 @@ ADD  $0    TO A,B
     """
   val lines = script.linesIterator.toVector
   exec(lines, State())
+  compile(lines)
 
 def strip(line: String): String =
   line
@@ -22,6 +23,7 @@ object mat:
   val SAVE: Regex = raw"SAVE (\S+) TO (\S+)".r
   val LOAD: Regex = raw"LOAD (\S+) TO (\S+)".r
   val ADD: Regex = raw"ADD (\S+) TO (\S),(\S)".r
+  val REGISTER: Regex = raw"([ABCD])".r
   /** before context replacement */
   val CONSTANT: Regex = raw"(#\S+)".r
   /** after context replacement */
@@ -30,6 +32,33 @@ object mat:
   val ADDRESS: Regex = raw"(\$$\S+)".r
   /** after context replacement */
   val ADDR: Regex = raw"(\d+)".r
+
+def compile(lines: Vector[String]): Unit =
+  println("\nCompilation:")
+  (0 until DIGITS).foreach { actor =>
+    println(s"\nActor $actor:")
+    lines.map(strip).filterNot(_.isEmpty).foreach(compile(actor))
+  }
+
+def compile(actor: Int)(line: String): Unit =
+  object S { def unapply(string: String): Option[String] = Some(string.drop(1)) }
+  import mat._
+  line match
+
+    // SAVE #0678 TO $0
+    case SAVE(CONSTANT(S(CONST(constant))), ADDRESS(S(ADDR(to)))) =>
+      println(raw"SAVE #${constant(actor)} TO $$$to")
+
+    // LOAD $0 TO A
+    case LOAD(ADDRESS(S(ADDR(address))), REGISTER(to)) =>
+      println(raw"LOAD $$$address TO $to")
+
+    // ADD $0 TO A,B
+    case ADD(ADDRESS(S(ADDR(address))), REGISTER(to), REGISTER(overflow)) =>
+      println(raw"ADD $$$address TO $to,$overflow")
+
+    case other =>
+      println(s"** unknown command '$other' **")
 
 @annotation.tailrec
 def exec(lines: Vector[String], state: State): Unit =
@@ -48,15 +77,18 @@ def exec(lines: Vector[String], currentLine: String, s: State): Unit =
     case "" =>
       line += 1
 
+    // SAVE #0678 TO $0
     case SAVE(constant(constant), address(to)) =>
       mem(to) = constant
       line += 1
 
-    case LOAD(address(from), register(to)) =>
+    // LOAD $0 TO A
+    case LOAD(address(from), REGISTER(to)) =>
       reg(to) = mem(from)
       line += 1
 
-    case ADD(address(from), register(to), register(overflow)) =>
+    // ADD $0 TO A,B
+    case ADD(address(from), REGISTER(to), REGISTER(overflow)) =>
       val (a,b) = reg(to).zip(mem(from)).map(_+_).map(i => i % 10 -> i / 10).unzip
       reg(to) = a
       reg(overflow) = b
@@ -91,6 +123,3 @@ class State:
       def unapply(string: String): Option[Int] = string match
         case mat.ADDRESS(self(mat.ADDR(raw))) => raw.toIntOption
         case other => None
-    object register:
-      def unapply(string: String): Option[String] =
-        if string.matches("[ABCD]") then Some(string) else None
