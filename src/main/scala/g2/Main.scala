@@ -4,12 +4,18 @@ import scala.collection.mutable
 import scala.util.matching.Regex
 
 @main def main(): Unit =
-  val script =
-    """
+  val script = """
 SAVE #0678 TO $0
 LOAD $0    TO A
 ADD  $0    TO A,B
-    """
+FUNCTION add_unsigned $x $y $z:
+LOAD $x TO A
+RETURN
+END_FUNCTION
+LOAD $0    TO A
+// END
+"""
+
   val lines = script.linesIterator.toVector
   exec(lines, State())
   compile(lines)
@@ -23,7 +29,10 @@ object mat:
   val SAVE: Regex = raw"SAVE (\S+) TO (\S+)".r
   val LOAD: Regex = raw"LOAD (\S+) TO (\S+)".r
   val ADD: Regex = raw"ADD (\S+) TO (\S),(\S)".r
+  val FUNCTION: Regex = raw"FUNCTION (\S+)(.*):".r
+  val END_FUNCTION: Regex = raw"END_FUNCTION".r
   val REGISTER: Regex = raw"([ABCD])".r
+  val NAME: Regex = raw"([a-z_]*)".r
   /** before context replacement */
   val CONSTANT: Regex = raw"(#\S+)".r
   /** after context replacement */
@@ -94,9 +103,25 @@ def exec(lines: Vector[String], currentLine: String, s: State): Unit =
       reg(overflow) = b
       line += 1
 
+    case FUNCTION(NAME(name), rawParams) =>
+      val params = rawParams.split(raw"\s+").filterNot(_.isEmpty)
+      require(params.forall(_.startsWith("$")))
+      line += 1
+      functions += name -> FuncDefinition(line, params.toSeq)
+      while strip(lines(line)) != "END_FUNCTION"
+      do { println(s"FN ${lines(line)}"); line += 1 }
+      println(s"FN ${lines(line)}")
+      line += 1
+
     case other =>
       println(s"** unknown command '$other' **")
       line += 1
+
+class FuncDefinition(val line: Int, val parameters: Seq[String])
+
+class Stackframe:
+  var line: Int = 0
+  val context: mutable.Map[String, String] = mutable.Map[String, String]()
 
 class State:
   def out(): Unit =
@@ -107,10 +132,13 @@ class State:
     println(s"L $l / R $r / M $m")
   private def invalid = List.fill(DIGITS)(-1)
 
-  var line: Int = 0
   val mem: Array[List[Int]] = Array.fill(MEMORY)(invalid)
   val reg: mutable.Map[String, List[Int]] = mutable.Map("A" -> invalid, "B" -> invalid, "C" -> invalid, "D" -> invalid)
-  val context: mutable.Map[String, String] = mutable.Map[String, String]()
+  var stack: Vector[Stackframe] = Vector(Stackframe())
+  val functions: mutable.Map[String, FuncDefinition] = mutable.Map()
+  def context: mutable.Map[String, String] = stack.last.context
+  def line: Int = stack.last.line
+  def line_=(line: Int): Unit = stack.last.line = line
 
   def unapply(string: String): Option[String] = Some(context.getOrElse(string, string).drop(1))
   val self: State = this
