@@ -8,10 +8,11 @@ import scala.util.matching.Regex
 SAVE #0678 TO $0
 LOAD $0    TO A
 ADD  $0    TO A,B
-FUNCTION add_unsigned $x $y $z:
+FUNCTION add_unsigned $x $y $z
 LOAD $x TO A
 RETURN
 END_FUNCTION
+CALL add_unsigned $0 $0 $1
 LOAD $0    TO A
 // END
 """
@@ -29,8 +30,10 @@ object mat:
   val SAVE: Regex = raw"SAVE (\S+) TO (\S+)".r
   val LOAD: Regex = raw"LOAD (\S+) TO (\S+)".r
   val ADD: Regex = raw"ADD (\S+) TO (\S),(\S)".r
-  val FUNCTION: Regex = raw"FUNCTION (\S+)(.*):".r
+  val FUNCTION: Regex = raw"FUNCTION (\S+)(.*)".r
   val END_FUNCTION: Regex = raw"END_FUNCTION".r
+  val CALL: Regex = raw"CALL (\S+)(.*)".r
+  val RETURN: Regex = raw"RETURN".r
   val REGISTER: Regex = raw"([ABCD])".r
   val NAME: Regex = raw"([a-z_]*)".r
   /** before context replacement */
@@ -113,15 +116,22 @@ def exec(lines: Vector[String], currentLine: String, s: State): Unit =
       println(s"FN ${lines(line)}")
       line += 1
 
+    case CALL(NAME(name), rawParams) =>
+      val params = rawParams.split(raw"\s+").filterNot(_.isEmpty)
+      require(params.forall(_.startsWith("$")))
+      val function = functions(name)
+      stack :+= Stackframe(function.line, function.parameters)
+
     case other =>
       println(s"** unknown command '$other' **")
       line += 1
 
 class FuncDefinition(val line: Int, val parameters: Seq[String])
 
-class Stackframe:
-  var line: Int = 0
+class Stackframe(
+  var line: Int = 0,
   val context: mutable.Map[String, String] = mutable.Map[String, String]()
+)
 
 class State:
   def out(): Unit =
