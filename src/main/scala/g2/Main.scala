@@ -62,12 +62,28 @@ def compile(actor: Int)(line: String): Unit =
       println(raw"SAVE #${constant(actor)} TO $$$to")
 
     // LOAD $0 TO A
-    case LOAD(ADDRESS(S(ADDR(address))), REGISTER(to)) =>
-      println(raw"LOAD $$$address TO $to")
+    case LOAD(ADDRESS(address), REGISTER(to)) =>
+      println(raw"LOAD $address TO $to")
 
     // ADD $0 TO A,B
     case ADD(ADDRESS(S(ADDR(address))), REGISTER(to), REGISTER(overflow)) =>
       println(raw"ADD $$$address TO $to,$overflow")
+
+    // FUNCTION add_unsigned $x $y $z
+    case FUNCTION(NAME(name), rawParams) =>
+      println(raw"FUNCTION ${(name + rawParams).strip}")
+
+    // CALL add_unsigned $0 $1 $2
+    case CALL(NAME(name), rawParams) =>
+      println(raw"CALL ${(name + rawParams).strip}")
+
+    // RETURN
+    case RETURN() =>
+      println(raw"RETURN")
+
+    // RETURN
+    case END_FUNCTION() =>
+      /* ignore */
 
     case other =>
       println(s"** unknown command '$other' **")
@@ -106,6 +122,7 @@ def exec(lines: Vector[String], currentLine: String, s: State): Unit =
       reg(overflow) = b
       line += 1
 
+    // FUNCTION add_unsigned $x $y $z
     case FUNCTION(NAME(name), rawParams) =>
       val params = rawParams.split(raw"\s+").filterNot(_.isEmpty)
       require(params.forall(_.startsWith("$")))
@@ -116,11 +133,21 @@ def exec(lines: Vector[String], currentLine: String, s: State): Unit =
       println(s"FN ${lines(line)}")
       line += 1
 
+    // CALL add_unsigned $0 $1 $2
     case CALL(NAME(name), rawParams) =>
-      val params = rawParams.split(raw"\s+").filterNot(_.isEmpty)
+      require(stack.size < STACK, s"Stack overflow")
+      val params = rawParams.split(raw"\s+").filterNot(_.isEmpty).toSeq
       require(params.forall(_.startsWith("$")))
       val function = functions(name)
-      stack :+= Stackframe(function.line, function.parameters)
+      val functionParameters = function.parameters.zip(params).toMap
+      stack :+= Stackframe(function.line, functionParameters.to(mutable.Map))
+      Thread.sleep(500)
+
+    // RETURN
+    case RETURN() =>
+      require(stack.nonEmpty, s"Stack underflow")
+      stack = stack.dropRight(1)
+      line += 1
 
     case other =>
       println(s"** unknown command '$other' **")
