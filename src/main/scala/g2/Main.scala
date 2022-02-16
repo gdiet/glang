@@ -15,6 +15,7 @@ IF NOT G THEN RETURN
 SHIFTLEFT B
 IF B > 0 THEN ADD #1 TO A,B
 GOTO loop
+RETURN // TODO remove - just necessary as long as the rest is not yet complete
 END_FUNCTION
 
 SAVE #0678 TO $0
