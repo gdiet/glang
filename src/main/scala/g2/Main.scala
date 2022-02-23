@@ -1,6 +1,8 @@
 package g2
 
-import scala.collection.mutable
+import java.util.concurrent.{ExecutorService, Executors}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.chaining.scalaUtilChainingOps
 import scala.util.matching.Regex
 
@@ -26,7 +28,12 @@ CALL add_unsigned $0 $1 $2
 """
 
   val lines = script.linesIterator.toVector
-  compile(lines)
+  println("\nCompilation:")
+  val commands = compile(lines)
+  println("\nExecution:")
+  val threadPool: ExecutorService = Executors.newFixedThreadPool(DIGITS)
+  Executor(lines, commands, ExecutionContext.fromExecutor(threadPool)).execute(0)
+  threadPool.shutdown()
 // TODO write an executor for the single actor, and one controller for the flow control
 //  exec(lines, State())
 
@@ -45,6 +52,7 @@ object mat:
   val RETURN: Regex = raw"RETURN".r
   val REGISTER: Regex = raw"([ABCD])".r
   val NAME: Regex = raw"([a-z_]*)".r
+  val DIGIT: Regex = raw"(#\S)".r
   /** before context replacement */
   val CONSTANT: Regex = raw"(#\S+)".r
   /** after context replacement */
@@ -53,9 +61,9 @@ object mat:
   val ADDRESS: Regex = raw"(\$$\S+)".r
   /** after context replacement */
   val ADDR: Regex = raw"(\d+)".r
+  object S { def unapply(string: String): Option[String] = Some(string.drop(1)) }
 
 def compile(lines: Vector[String]): Vector[Vector[String]] =
-  println("\nCompilation:")
   (0 until DIGITS).map { actor =>
     println(s"\nActor $actor:")
     lines.map(strip).map { line =>
@@ -64,7 +72,6 @@ def compile(lines: Vector[String]): Vector[Vector[String]] =
   }.toVector
 
 def compile(actor: Int, line: String): String =
-  object S { def unapply(string: String): Option[String] = Some(string.drop(1)) }
   import mat.*
   line match
 
@@ -81,23 +88,91 @@ def compile(actor: Int, line: String): String =
       raw"ADD $$$address TO $to,$overflow"
 
     // FUNCTION add_unsigned $x $y $z
-    case FUNCTION(NAME(name), rawParams) =>
-      raw"FUNCTION ${(name + rawParams).strip}"
+    case FUNCTION(NAME(name), params) =>
+      raw"FUNCTION ${(name + params).strip}"
 
     // CALL add_unsigned $0 $1 $2
-    case CALL(NAME(name), rawParams) =>
-      raw"CALL ${(name + rawParams).strip}"
+    case CALL(NAME(name), params) =>
+      raw"CALL ${(name + params).strip}"
 
     // RETURN
     case RETURN() =>
       raw"RETURN"
 
-    // END_FUNCTION and empty lines can be ignored
-    case END_FUNCTION() | "" =>
+    // END_FUNCTION
+    case END_FUNCTION() =>
+      raw"END_FUNCTION"
+
+    // empty lines can be ignored
+    case "" =>
       ""
 
     case other =>
       s"** unknown command '$other' **"
+
+
+final class Executor(lines: Vector[String], commands: Vector[Vector[String]], implicit val ec: ExecutionContext):
+  require(commands.forall(_.size == lines.size))
+  require(commands.size == DIGITS)
+
+  var functions: Map[String, Int] = Map()
+  var stack: List[Int] = List()
+  val actors: Vector[Actor] = (0 until DIGITS).map(Actor(this, _)).toVector
+
+  @annotation.tailrec
+  def execute(lineNo: Int): Unit = if lineNo < lines.size then
+    val line = lines(lineNo)
+    val cmds = commands.map(_(lineNo))
+    println(f"$lineNo%3d $line")
+
+    import mat.*
+    cmds(0) match
+      // FUNCTION add_unsigned $x $y $z
+      case FUNCTION(NAME(name), params) =>
+        val endFunctionAt = commands(0).indexWhere(END_FUNCTION.matches, lineNo + 1)
+        execute(endFunctionAt + 1)
+
+      // CALL add_unsigned $0 $1 $2
+      case CALL(NAME(name), params) =>
+        // FIXME dupliacte code
+        val future = Future.sequence(actors.map { actor =>
+          Thread.sleep(100) // Ensures the debug output is in a nice order
+          Future(actor.execute(cmds(actor.digit)))
+        })
+        Await.ready(future, Duration.Inf)
+        ???
+
+      case "" =>
+        execute(lineNo + 1)
+
+      case cmd =>
+        val future = Future.sequence(actors.map { actor =>
+          Thread.sleep(100) // Ensures the debug output is in a nice order
+          Future(actor.execute(cmds(actor.digit)))
+        })
+        Await.ready(future, Duration.Inf)
+        execute(lineNo + 1)
+
+
+class Actor(executor: Executor, val digit: Int):
+  val mem: Array[Int] = Array.fill(MEMORY)(-1)
+  val flags: Map[Char, Boolean] = Map('F' -> false, 'G' -> false, 'H' -> false, 'I' -> false)
+  val reg: Map[Char, Int] = Map('A' -> -1, 'B' -> -1, 'C' -> -1, 'D' -> -1)
+  val ctx: List[Map[String, String]] = List(Map())
+
+  def out(msg: String): Unit = System.err.println(msg)
+
+  def execute(cmd: String): Unit =
+    import mat.*
+    cmd match
+
+      // SAVE #6 TO $0
+      case SAVE(DIGIT(S(digit)), ADDRESS(S(ADDR(to)))) =>
+        mem(to.toInt) = digit.toInt
+
+      case other =>
+        out(s"Actor $digit - not implemented: $other")
+
 
 //@annotation.tailrec
 //def exec(lines: Vector[String], state: State): Unit =
