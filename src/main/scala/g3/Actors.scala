@@ -26,13 +26,17 @@ class Actor(settings: Settings, position: Int, actors: Actors):
     case other => /* ignore */
 
 object Manager:
-  val gotoTargetLine: Regex = "([a-z_]+): *(.*)".r
-  val functionDefinitionLine: Regex = "FUNCTION ([a-z_]+): *.*".r
+  // (loop):
+  // (loop): SOME_COMMAND
+  val gotoTargetLine: Regex = "([a-z_]+):.*".r
+  // FUNCTION (add_unsigned): ()
+  // FUNCTION (add_unsigned): ($x $y $z)
+  val functionDefinitionLine: Regex = "FUNCTION ([a-z_]+): *(.*)".r
   val endFunctionLine: Regex = "END_FUNCTION".r
   val returnLine: Regex = "(|[a-z_]+: *)RETURN".r
-  val someCommandLine: Regex = "(|[a-z_]+: *)(.*)".r
+  val someCommandLine: Regex = "([a-z_]+:){0,1} *(.*)".r
 
-class Manager(settings: Settings, lines: Seq[String]) extends AutoCloseable with ClassLogging:
+class Manager(lines: Seq[String], settings: Settings = Settings()) extends AutoCloseable with ClassLogging:
   import Manager.*
   val actors: Actors = Actors(settings)
   override def close(): Unit = actors.close()
@@ -40,12 +44,12 @@ class Manager(settings: Settings, lines: Seq[String]) extends AutoCloseable with
   log.info("Pass 1: goto targets and function definitions")
 
   val gotoTargets: Map[String, Int] = lines.zipWithIndex.collect {
-    case (gotoTargetLine(targetName, _), lineNumber) => targetName -> lineNumber
+    case (gotoTargetLine(targetName), lineNumber) => targetName -> lineNumber
   }.toMap
   log.info(s"goto targets: $gotoTargets")
 
   val functionDefinitions: Map[String, Int] = lines.zipWithIndex.collect {
-    case (functionDefinitionLine(functionName), lineNumber) => functionName -> lineNumber
+    case (functionDefinitionLine(functionName, _), lineNumber) => functionName -> lineNumber
   }.toMap
   log.info(s"function definitions: $functionDefinitions")
 
@@ -61,8 +65,8 @@ class Manager(settings: Settings, lines: Seq[String]) extends AutoCloseable with
       log.info(f"executing: $lineNumber%2d $line")
       line.replaceAll("// .*", "").trim match
 
-        case functionDefinitionLine(functionName) =>
-          log.info(s"function definition: $functionName")
+        case functionDefinitionLine(functionName, parameters) =>
+          log.info(s"function definition: $functionName, parameters $parameters")
           val lineWithEndFunction = lines.indexWhere(endFunctionLine.matches, lineNumber)
           execute(lineWithEndFunction + 1, context)
 

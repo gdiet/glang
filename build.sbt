@@ -4,7 +4,9 @@ lazy val glang = project
     name := "glang",
     version := "current",
     scalaVersion := "3.1.1",
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.10"
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.10",
+    // TEST DEPENDENCIES
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.11" % "test"
   )
 
 lazy val createApp = taskKey[Unit]("Create the app.")
