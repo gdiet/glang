@@ -3,8 +3,11 @@
 * Source code is processed by lines.
 * The lines are stripped of comments "// .*" and then trimmed.
 * User defined names must be like "[a-z_]+".
-* "^[name]:.*" defines a GOTO target.
-* "^FUNCTION [name]:.*" (with optional parameters) defines a function.
+* "FUNCTION [name]:.*" with optional parameters defines a function.
+* Function definitions must be terminated by a matching "END_FUNCTION".
+* Function definitions may not be nested.
+* "[name]:.*" defines a GOTO target with optional command appended.
+* Only the commands below can be appended to a GOTO target.
 
 # Execution
 

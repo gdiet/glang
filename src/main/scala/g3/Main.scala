@@ -14,13 +14,17 @@ IF NOT G THEN RETURN
 SHIFTLEFT B
 IF B > 0 THEN ADD #1 TO A,B
 GOTO loop
+RETURN // TODO remove - just necessary as long as the rest is not yet complete
+END_FUNCTION
 
 SAVE #0678 TO $0
-SAVE #9876 TO $1
+target_no_command:
+example_target: SAVE #9876 TO $1
+RETURN // TODO remove - just for first implementation
 CALL add_unsigned $0 $1 $2
 // END
 """
   val lines = script.linesIterator.toVector
   resource(Manager(Settings(), lines)) { manager =>
-
+    manager.execute(0)
   }
