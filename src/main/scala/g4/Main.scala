@@ -11,6 +11,13 @@ NOP
 SET !F TRUE
 SET !G FALSE
 
+IF §B > #4 THEN CODE
+IF §A < #4 THEN CODE
+IF §C = #0 THEN CODE
+
+IF !F THEN CODE
+IF NOT !G THEN CODE
+
 FUNCTION add_unsigned: $x $y $z
 LOAD $x TO A
 ADD  $y TO A,B
