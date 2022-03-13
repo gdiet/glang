@@ -32,43 +32,46 @@ class Actor(settings: Settings, actors: Actors, position: Int):
 
   def executeStep(): Future[Unit] =
     val line = f"$nextLine%d3:"
-    val code = codeLines(nextLine)
-    log.debug(s"$line $code")
-    executeCode(line, code)
+    val codeLine = codeLines(nextLine)
+    log.debug(s"$line $codeLine")
+    executeCode(line, codeLine)
+
+  def advance(): Future[Unit] =
+    nextLine += 1
+    Future.unit
 
   def executeCode(line: String, code: String): Future[Unit] = code + " " match // Add space for simpler patterns
 
     case COPY_MEM_TO_REG(address, register) =>
       log.info(s"$line COPY_MEM_TO_REG(${ctx(address)}, §$register)")
       registers += register.head -> memory(ctx(address).tail.toInt)
-      nextLine += 1
-      Future.unit
+      advance()
 
     case ADD_MEM_TO_REG_REG(address, reg1, reg2) =>
       log.info(s"$line ADD_MEM_TO_REG_REG(${ctx(address)}, §$reg1, §$reg2)")
       val sum = registers(reg1.head) + memory(ctx(address).tail.toInt)
       registers += reg1.head -> sum % 10
       registers += reg2.head -> sum / 10
-      Future.unit
+      advance()
 
     case SET_FLAG(flag, value) =>
       log.info(s"$line SET_FLAG(!$flag, $value)")
       actors.flags += flag.head -> value.toBoolean
-      Future.unit
+      advance()
 
     case IF_REG_OP_CONST_CODE(register, operator, constant, conditional) =>
       operator match
         case ">" if registers(register.head) > constant.toInt => executeCode(line, conditional)
         case "<" if registers(register.head) < constant.toInt => executeCode(line, conditional)
         case "=" if registers(register.head) == constant.toInt => executeCode(line, conditional)
-        case other => Future.unit
+        case other => advance()
 
     case IF_FLAG_CODE(flag, conditional) =>
-      if actors.flags(flag.head) then executeCode(line, conditional) else Future.unit
+      if actors.flags(flag.head) then executeCode(line, conditional) else advance()
 
     case IFNOT_FLAG_CODE(flag, conditional) =>
-      if !actors.flags(flag.head) then executeCode(line, conditional) else Future.unit
+      if !actors.flags(flag.head) then executeCode(line, conditional) else advance()
 
     case other =>
       log.info(s"$line NOP")
-      Future.unit
+      advance()
