@@ -18,6 +18,18 @@ IF §C = #0 THEN CODE
 IF !F THEN CODE
 IF NOT !G THEN CODE
 
+loop:
+loop2: CODE
+
+GOTO loop:
+
+TODO PLANNED:
+
+GOTO loop: CONTEXT $x=$5 $y=$3
+GOSUB name: CONTEXT $x=$5 $y=$3
+RETURN
+
+
 FUNCTION add_unsigned: $x $y $z
 LOAD $x TO A
 ADD  $y TO A,B
