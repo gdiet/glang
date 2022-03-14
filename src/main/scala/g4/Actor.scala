@@ -11,8 +11,10 @@ class Actors(settings: Settings, codeLines: Vector[Vector[String]]):
   var flags: Map[Char, Boolean] = Map() // Flags F, G, H, I
 
 object Actor:
+  val DIGIT_SOURCE_CONST  : Regex = """#(\d)""".r
+
   val LABEL_CODE          : Regex = """(\w+:) (.*)""".r
-  val COPY_MEM_TO_REG     : Regex = """COPY (\$\w+) TO §([A-D]) .*""".r
+  val COPY_DIGIT_TO_REG   : Regex = """COPY (\$\w+) TO §([A-D]) .*""".r
   val ADD_MEM_TO_REG_REG  : Regex = """ADD (\$\S+) TO §([A-D]),§([A-D]) .*""".r
   val SET_FLAG            : Regex = """SET !([F-I]) (TRUE|FALSE) .*""".r
   val IF_REG_OP_CONST_CODE: Regex = """IF §([A-D]) ([=><]) #(\d) THEN (.*)""".r
@@ -46,15 +48,24 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
     nextLine += 1
     Future.unit
 
+  def digitSource(string: String): Int = string match
+
+    case DIGIT_SOURCE_CONST(digit) =>
+      digit.toInt
+      
+    case other =>
+      log.error(s"digit source $other not recognized")
+      0
+
   @annotation.tailrec
   final def executeCode(line: String, code: String): Future[Unit] = code + " " match // Add space for simpler patterns
 
     case LABEL_CODE(_, fragment) =>
       executeCode(line, fragment)
 
-    case COPY_MEM_TO_REG(address, register) =>
-      log.info(s"$line COPY_MEM_TO_REG(${ctx(address)}, §$register)")
-      registers += register.head -> memory(ctx(address).tail.toInt)
+    case COPY_DIGIT_TO_REG(source, register) =>
+      log.info(s"$line COPY_MEM_TO_REG(${ctx(source)}, §$register)")
+      registers += register.head -> memory(ctx(source).tail.toInt)
       advance()
 
     case ADD_MEM_TO_REG_REG(address, reg1, reg2) =>
