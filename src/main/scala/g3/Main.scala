@@ -26,5 +26,5 @@ CALL add_unsigned $0 $1 $2
 """
   val lines = script.linesIterator.toVector
   resource(Manager(lines)) { manager =>
-    manager.execute(0)
+//    manager.execute(0)
   }
