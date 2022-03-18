@@ -2,6 +2,8 @@
 
 COPY $5 TO §A
 COPY $x TO §A
+COPY #5 TO §A
+COPY #x TO §A
 
 ADD $5 TO §A,§B
 ADD $x TO §A,§B

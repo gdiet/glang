@@ -12,9 +12,10 @@ class Actors(settings: Settings, codeLines: Vector[Vector[String]]):
 
 object Actor:
   val DIGIT_SOURCE_CONST  : Regex = """#(\d)""".r
+  val DIGIT_SOURCE_MEMORY : Regex = """\$(\d+)""".r
 
   val LABEL_CODE          : Regex = """(\w+:) (.*)""".r
-  val COPY_DIGIT_TO_REG   : Regex = """COPY (\$\w+) TO §([A-D]) .*""".r
+  val COPY_TO_REG         : Regex = """COPY (\S+) TO §([A-D]) .*""".r
   val ADD_MEM_TO_REG_REG  : Regex = """ADD (\$\S+) TO §([A-D]),§([A-D]) .*""".r
   val SET_FLAG            : Regex = """SET !([F-I]) (TRUE|FALSE) .*""".r
   val IF_REG_OP_CONST_CODE: Regex = """IF §([A-D]) ([=><]) #(\d) THEN (.*)""".r
@@ -41,7 +42,7 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
   def executeStep(): Future[Unit] =
     val line = f"$nextLine%d3:"
     val codeLine = codeLines(nextLine)
-    log.debug(s"$line $codeLine")
+    log.info(s"$line $codeLine")
     executeCode(line, codeLine)
 
   def advance(): Future[Unit] =
@@ -52,7 +53,10 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
 
     case DIGIT_SOURCE_CONST(digit) =>
       digit.toInt
-      
+
+    case DIGIT_SOURCE_MEMORY(address) =>
+      memory(address.toInt)
+
     case other =>
       log.error(s"digit source $other not recognized")
       0
@@ -63,9 +67,10 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
     case LABEL_CODE(_, fragment) =>
       executeCode(line, fragment)
 
-    case COPY_DIGIT_TO_REG(source, register) =>
-      log.info(s"$line COPY_MEM_TO_REG(${ctx(source)}, §$register)")
-      registers += register.head -> memory(ctx(source).tail.toInt)
+    case COPY_TO_REG(source, register) =>
+      val sourceDigit = digitSource(source)
+      log.info(s"$line COPY #$sourceDigit TO §$register")
+      registers += register.head -> sourceDigit
       advance()
 
     case ADD_MEM_TO_REG_REG(address, reg1, reg2) =>
@@ -94,5 +99,5 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
       if !actors.flags(flag.head) then executeCode(line, fragment) else advance()
 
     case other =>
-      log.info(s"$line NOP")
+      log.info(s"$line NOP: '$code'")
       advance()
