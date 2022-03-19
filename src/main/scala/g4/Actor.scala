@@ -73,7 +73,7 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
       advance()
 
     case ADD_TO_REG_REG(source, reg1, reg2) =>
-      log.info(s"$line ADD_TO_REG_REG(${digitSource(source)}, §$reg1, §$reg2)")
+      log.info(s"$line ADD #${digitSource(source)} TO §$reg1,§$reg2")
       val sum = registers(reg1.head) + digitSource(source)
       registers += reg1.head -> sum % 10
       registers += reg2.head -> sum / 10
