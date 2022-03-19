@@ -27,4 +27,13 @@ class ActorSpec extends org.scalatest.freespec.AnyFreeSpec:
       assert(actor.registers('A') == 3)
     }
 
+    "ADD #5 TO §A,§B" in {
+      val codeLines = Vector(Vector("ADD #5 TO §A,§B"))
+      val actor = Actors(settings1, codeLines).actors(0)
+      actor.registers += 'A' -> 7
+      actor.executeStep()
+      assert(actor.registers('A') == 2)
+      assert(actor.registers('B') == 1)
+    }
+
   }

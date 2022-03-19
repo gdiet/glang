@@ -17,7 +17,7 @@ object Actor:
 
   val LABEL_CODE          : Regex = """(\w+:) (.*)""".r
   val COPY_TO_REG         : Regex = """COPY (\S+) TO §([A-D]) .*""".r
-  val ADD_MEM_TO_REG_REG  : Regex = """ADD (\$\S+) TO §([A-D]),§([A-D]) .*""".r
+  val ADD_TO_REG_REG      : Regex = """ADD (\S+) TO §([A-D]),§([A-D]) .*""".r
   val SET_FLAG            : Regex = """SET !([F-I]) (TRUE|FALSE) .*""".r
   val IF_REG_OP_CONST_CODE: Regex = """IF §([A-D]) ([=><]) #(\d) THEN (.*)""".r
   val IF_FLAG_CODE        : Regex = """IF !([F-I]) THEN (.*)""".r
@@ -72,12 +72,11 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
       registers += register.head -> sourceDigit
       advance()
 
-    case ADD_MEM_TO_REG_REG(address, reg1, reg2) =>
-      ???
-//      log.info(s"$line ADD_MEM_TO_REG_REG(${ctx(address)}, §$reg1, §$reg2)")
-//      val sum = registers(reg1.head) + memory(ctx(address).tail.toInt)
-//      registers += reg1.head -> sum % 10
-//      registers += reg2.head -> sum / 10
+    case ADD_TO_REG_REG(source, reg1, reg2) =>
+      log.info(s"$line ADD_TO_REG_REG(${digitSource(source)}, §$reg1, §$reg2)")
+      val sum = registers(reg1.head) + digitSource(source)
+      registers += reg1.head -> sum % 10
+      registers += reg2.head -> sum / 10
       advance()
 
     case SET_FLAG(flag, value) =>
