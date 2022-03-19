@@ -19,4 +19,12 @@ class ActorSpec extends org.scalatest.freespec.AnyFreeSpec:
       assert(actor.registers('A') == 5)
     }
 
+    "COPY #x TO §A" in {
+      val codeLines = Vector(Vector("COPY #x TO §A"))
+      val actor = Actors(settings1, codeLines).actors(0)
+      actor.context = List(INVALID -> Map("x" -> "123"))
+      actor.executeStep()
+      assert(actor.registers('A') == 3)
+    }
+
   }

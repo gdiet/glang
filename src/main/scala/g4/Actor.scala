@@ -11,8 +11,9 @@ class Actors(settings: Settings, codeLines: Vector[Vector[String]]):
   var flags: Map[Char, Boolean] = Map() // Flags F, G, H, I
 
 object Actor:
-  val DIGIT_SOURCE_CONST  : Regex = """#(\d)""".r
-  val DIGIT_SOURCE_MEMORY : Regex = """\$(\d+)""".r
+  val DIGIT_SOURCE_DIGIT  : Regex = """#(\d)""".r
+  val DIGIT_SOURCE_CONST  : Regex = """#(\S+)""".r
+  val DIGIT_SOURCE_MEMORY : Regex = """\$(\S+)""".r
 
   val LABEL_CODE          : Regex = """(\w+:) (.*)""".r
   val COPY_TO_REG         : Regex = """COPY (\S+) TO §([A-D]) .*""".r
@@ -37,10 +38,10 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
   var registers: Map[Char, Int] = Map() // Registers A, B, C, D
   var nextLine: Int = 0
 
-  def ctx(in: String): String = context.head._2.getOrElse(in, in)
+  extension (in: String) def ctx: String = context.head._2.getOrElse(in, in)
 
   def executeStep(): Future[Unit] =
-    val line = f"$nextLine%d3:"
+    val line = f"$nextLine%3d:"
     val codeLine = codeLines(nextLine)
     log.info(s"$line $codeLine")
     executeCode(line, codeLine)
@@ -51,11 +52,9 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
 
   def digitSource(string: String): Int = string match
 
-    case DIGIT_SOURCE_CONST(digit) =>
-      digit.toInt
-
-    case DIGIT_SOURCE_MEMORY(address) =>
-      memory(address.toInt)
+    case DIGIT_SOURCE_DIGIT(digit)    => digit.ctx.toInt
+    case DIGIT_SOURCE_CONST(source)   => source.ctx.takeRight(position + 1).take(1).toInt
+    case DIGIT_SOURCE_MEMORY(address) => memory(address.ctx.toInt)
 
     case other =>
       log.error(s"digit source $other not recognized")
@@ -74,10 +73,11 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
       advance()
 
     case ADD_MEM_TO_REG_REG(address, reg1, reg2) =>
-      log.info(s"$line ADD_MEM_TO_REG_REG(${ctx(address)}, §$reg1, §$reg2)")
-      val sum = registers(reg1.head) + memory(ctx(address).tail.toInt)
-      registers += reg1.head -> sum % 10
-      registers += reg2.head -> sum / 10
+      ???
+//      log.info(s"$line ADD_MEM_TO_REG_REG(${ctx(address)}, §$reg1, §$reg2)")
+//      val sum = registers(reg1.head) + memory(ctx(address).tail.toInt)
+//      registers += reg1.head -> sum % 10
+//      registers += reg2.head -> sum / 10
       advance()
 
     case SET_FLAG(flag, value) =>
