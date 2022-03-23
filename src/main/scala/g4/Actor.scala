@@ -1,14 +1,36 @@
 package g4
 
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.util.matching.Regex
 
 class Actors(settings: Settings, codeLines: Vector[Vector[String]]):
   val actors: Vector[Actor] = (0 until settings.DIGITS).map(position =>
-    Actor(settings, this, position, codeLines(position))
+    Actor(settings, this, position, codeLines.map(_(position)))
   ).toVector
 
+  def memoryAsString: String =
+    (0 until settings.MEMORY).map(addressAsString).mkString("\n")
+
+  def addressAsString(address: Int): String =
+    actors.map(_.memory(address)).map {
+      case n if n < 0 => "~"
+      case n if n > 9 => s"!$n!"
+      case n => s"$n"
+    }.mkString
+
   var flags: Map[Char, Boolean] = Map() // Flags F, G, H, I
+
+  @annotation.tailrec
+  final def execute(): Unit =
+    if actors(0).hasMoreSteps then
+      require(actors.forall(_.hasMoreSteps))
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Await.ready(Future.sequence(actors.map(_.executeStep())), Duration.Inf)
+      execute()
+    else
+      require(actors.forall(!_.hasMoreSteps))
+
 
 object Actor:
   val TARGET_OFFSET       : Regex = """(\S+)\+(\d+)""".r
@@ -41,6 +63,9 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
   var nextLine: Int = 0
 
   extension (in: String) def ctx: String = context.head._2.getOrElse(in, in)
+
+  def hasMoreSteps: Boolean =
+    nextLine >= 0 && nextLine < codeLines.size
 
   def executeStep(): Future[Unit] =
     val line = f"$nextLine%3d:"
