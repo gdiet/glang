@@ -28,7 +28,7 @@ class CompilerSpec extends org.scalatest.freespec.AnyFreeSpec:
       println(s"### $code")
       assert(code == Vector(
         Vector("COPY #456 TO 0", "COPY #456 TO 0", "COPY #456 TO 0"),
-        Vector("ADD #4 TO 0 OVERFLOW 1", "ADD #5 TO 0 OVERFLOW 1", "ADD #6 TO 0 OVERFLOW 1"),
+        Vector("ADD #456 TO 0 OVERFLOW 1", "ADD #456 TO 0 OVERFLOW 1", "ADD #456 TO 0 OVERFLOW 1"),
       ))
     }
   }
