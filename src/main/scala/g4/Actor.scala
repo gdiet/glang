@@ -13,7 +13,7 @@ class Actors(settings: Settings, codeLines: Vector[Vector[String]]):
     (0 until settings.MEMORY).map(addressAsString).mkString("\n")
 
   def addressAsString(address: Int): String =
-    actors.map(_.memory(address)).map {
+    actors.reverse.map(_.memory(address)).map {
       case n if n < 0 => "~"
       case n if n > 9 => s"!$n!"
       case n => s"$n"
@@ -36,7 +36,6 @@ object Actor:
   val TARGET_OFFSET       : Regex = """(\S+)\+(\d+)""".r
   val TARGET              : Regex = """(\S+)""".r
 
-  val DIGIT_SOURCE_DIGIT  : Regex = """#(\d)""".r
   val DIGIT_SOURCE_CONST  : Regex = """#(\S+)""".r
   val DIGIT_SOURCE_MEMORY : Regex = """(\S+)""".r
 
@@ -50,10 +49,12 @@ object Actor:
 
 class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector[String]):
   import Actor.*
+  import settings.*
+
   val log: org.slf4j.Logger = org.slf4j.LoggerFactory.getLogger(s"${getClass.getName}.$position")
 
   val memory: Array[Int] =
-    Array.fill(settings.MEMORY)(INVALID)
+    Array.fill(MEMORY)(INVALID)
   val jumpTargets: Map[String, Int] =
     codeLines.zipWithIndex.collect { case (LABEL_CODE(label, _), line) => label -> line }.toMap
 
@@ -79,9 +80,11 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
 
   def digitSource(string: String): Int = string match
 
-    case DIGIT_SOURCE_DIGIT(digit)    => digit.ctx.toInt
-    case DIGIT_SOURCE_CONST(source)   => source.ctx.takeRight(position + 1).take(1).toInt
-    case DIGIT_SOURCE_MEMORY(address) => memory(address.ctx.toInt)
+    case DIGIT_SOURCE_CONST(source)   =>
+      val raw = source.ctx
+      ("0" * (DIGITS - raw.length) + raw).takeRight(position + 1).take(1).toInt
+    case DIGIT_SOURCE_MEMORY(address) =>
+      memory(address.ctx.toInt)
 
     case other =>
       log.error(s"digit source $other not recognized")
