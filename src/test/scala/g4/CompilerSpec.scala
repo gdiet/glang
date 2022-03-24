@@ -4,6 +4,12 @@ class CompilerSpec extends org.scalatest.freespec.AnyFreeSpec:
   val settings1: Settings = Settings(3, 5, 5)
   "The compiler should process single commands" - {
 
+    "SET F TRUE" in {
+      val codeLines = Vector("SET F TRUE")
+      val code = Compiler(settings1, codeLines).code
+      assert(code == Vector(Vector("SET F TRUE", "NOP", "NOP")))
+    }
+
     "COPY #456 TO 3" in {
       val codeLines = Vector("COPY #456 TO 3")
       val code = Compiler(settings1, codeLines).code

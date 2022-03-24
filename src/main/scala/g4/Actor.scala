@@ -9,6 +9,12 @@ class Actors(settings: Settings, codeLines: Vector[Vector[String]]):
     Actor(settings, this, position, codeLines.map(_(position)))
   ).toVector
 
+  def flagAsString(flag: Char): String =
+    flags.get(flag).map { case true => "+"; case false => "-" }.getOrElse("?")
+
+  def flagsAsString: String =
+    flagAsString('F') + flagAsString('G') + flagAsString('H') + flagAsString('I')
+
   def memoryAsString: String =
     (0 until settings.MEMORY).map(addressAsString).mkString("\n")
 
@@ -42,7 +48,7 @@ object Actor:
   val LABEL_CODE          : Regex = """(\w+:) (.*)""".r
   val CMD_COPY            : Regex = """COPY (\S+) TO (\S+) .*""".r
   val CMD_ADD             : Regex = """ADD (\S+) TO (\S+) OVERFLOW (\S+) .*""".r
-  val SET_FLAG            : Regex = """SET !([F-I]) (TRUE|FALSE) .*""".r
+  val SET_FLAG            : Regex = """SET ([F-I]) (TRUE|FALSE) .*""".r
   val IF_REG_OP_CONST_CODE: Regex = """IF §([A-D]) ([=><]) #(\d) THEN (.*)""".r
   val IF_FLAG_CODE        : Regex = """IF !([F-I]) THEN (.*)""".r
   val IFNOT_FLAG_CODE     : Regex = """IF NOT !([F-I]) THEN (.*)""".r
@@ -120,7 +126,7 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
       advance()
 
     case SET_FLAG(flag, value) =>
-      log.info(s"$line SET_FLAG(!$flag, $value)")
+      log.info(s"$line SET $flag $value")
       actors.flags += flag.head -> value.toBoolean
       advance()
 
