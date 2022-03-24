@@ -7,7 +7,7 @@ class CompilerSpec extends org.scalatest.freespec.AnyFreeSpec:
     "COPY #456 TO 3" in {
       val codeLines = Vector("COPY #456 TO 3")
       val code = Compiler(settings1, codeLines).code
-      assert(code == Vector(Vector("COPY #4 TO 3", "COPY #5 TO 3", "COPY #6 TO 3")))
+      assert(code == Vector(Vector("COPY #456 TO 3", "COPY #456 TO 3", "COPY #456 TO 3")))
     }
 
     "COPY 0 TO 1" in {
@@ -20,5 +20,15 @@ class CompilerSpec extends org.scalatest.freespec.AnyFreeSpec:
       val codeLines = Vector("COPY #x TO 4")
       val code = Compiler(settings1, codeLines).code
       assert(code == Vector(Vector("COPY #x TO 4", "COPY #x TO 4", "COPY #x TO 4")))
+    }
+
+    "COPY and ADD" in {
+      val codeLines = Vector("COPY #456 TO 0", "ADD #456 TO 0 OVERFLOW 1")
+      val code = Compiler(settings1, codeLines).code
+      println(s"### $code")
+      assert(code == Vector(
+        Vector("COPY #456 TO 0", "COPY #456 TO 0", "COPY #456 TO 0"),
+        Vector("ADD #4 TO 0 OVERFLOW 1", "ADD #5 TO 0 OVERFLOW 1", "ADD #6 TO 0 OVERFLOW 1"),
+      ))
     }
   }
