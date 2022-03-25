@@ -4,8 +4,8 @@ import util.chaining.scalaUtilChainingOps
 
 /*
 add_unsigned: ADD 0 TO 1 OVERFLOW 2
-SET F FALSE
-loop: SET G FALSE
+<1> SET F FALSE; <-1> NOP
+loop: <1> SET G FALSE; <-1> NOP
 <1> IF 2 > #0 THEN SET F TRUE; <-1>: IF 2 > #0 THEN SET G TRUE
 IF NOT G THEN RETURN
 SHIFTLEFT 2
@@ -16,8 +16,8 @@ class ExecutionSpec extends org.scalatest.freespec.AnyFreeSpec:
   val settings1: Settings = Settings(3, 4, 5)
   "The execution engine should process commands" - {
 
-    "SET F TRUE // SET G FALSE" in {
-      val codeLines = Vector("SET F TRUE", "SET G FALSE")
+    "loop: <1> SET F TRUE; <1> SET G FALSE; <-2> NOP" in {
+      val codeLines = Vector("loop: <1> SET F TRUE; <1> SET G FALSE; <-2> NOP")
       val code = Compiler(settings1, codeLines).code
       val actors = Actors(settings1, code).tap(_.execute())
       assert(actors.flagsAsString == "+-??")
