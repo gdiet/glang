@@ -4,6 +4,13 @@ class CompilerSpec extends org.scalatest.freespec.AnyFreeSpec:
   val settings1: Settings = Settings(3, 5, 5)
   "The compiler should process single commands" - {
 
+    // 1: One actor, least significant first. -1: DIGITS-1 actors.
+    "loop: <1> SET F TRUE; <-1> NOP" in {
+      val codeLines = Vector("loop: <1> SET F TRUE; <-1> NOP")
+      val code = Compiler(settings1, codeLines).code
+      assert(code == Vector(Vector("loop: SET F TRUE", "loop: NOP", "loop: NOP")))
+    }
+
     "loop: SET F TRUE" in {
       val codeLines = Vector("loop: SET F TRUE")
       val code = Compiler(settings1, codeLines).code

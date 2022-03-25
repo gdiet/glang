@@ -6,7 +6,7 @@ import util.chaining.scalaUtilChainingOps
 add_unsigned: ADD 0 TO 1 OVERFLOW 2
 SET F FALSE
 loop: SET G FALSE
-[0] IF 2 > #0 THEN SET F TRUE; [1..-1]: IF 2 > #0 THEN SET G TRUE
+<1> IF 2 > #0 THEN SET F TRUE; <-1>: IF 2 > #0 THEN SET G TRUE
 IF NOT G THEN RETURN
 SHIFTLEFT 2
 IF 2 > #0 THEN ADD #1 TO 1 OVERFLOW 2
