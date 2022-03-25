@@ -63,16 +63,11 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
     Array.fill(MEMORY)(INVALID)
   val jumpTargets: Map[String, Int] =
     codeLines.zipWithIndex.collect { case (LABEL_CODE(label, _), line) => label -> line }.toMap
+  var returnTargets: List[Int] =
+    List(INVALID)
 
-  /** Stack frames containing the line number to return to and the frame's context map, which is
-    * "replace string A with string B before processing" to support variables in function calls. */
-  var context: List[(Int, Map[String, String])] = List(INVALID -> Map())
   var nextLine: Int = 0
-
-  extension (in: String) def ctx: String = context.head._2.getOrElse(in, in)
-
-  def hasMoreSteps: Boolean =
-    nextLine >= 0 && nextLine < codeLines.size
+  def hasMoreSteps: Boolean = nextLine >= 0 && nextLine < codeLines.size
 
   def executeStep(): Future[Unit] =
     val line = f"$nextLine%3d:"
@@ -85,22 +80,12 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
     Future.unit
 
   def digitSource(string: String): Int = string match
-
     case DIGIT_SOURCE_CONST(source)   =>
-      val raw = source.ctx
-      ("0" * (DIGITS - raw.length) + raw).takeRight(position + 1).take(1).toInt
+      ("0" * (DIGITS - source.length) + source).takeRight(position + 1).take(1).toInt
     case DIGIT_SOURCE_MEMORY(address) =>
-      memory(address.ctx.toInt)
-
+      memory(address.toInt)
     case other =>
-      log.error(s"digit source $other not recognized")
-      0
-
-  def targetResolution(target: String): Int = target match
-    case TARGET_OFFSET(target, offset) =>
-      log.info(s"#### $target ${target.ctx} $offset ${offset.ctx}")
-      target.ctx.toInt + offset.ctx.toInt
-    case TARGET       (target        ) => target.ctx.toInt
+      log.error(s"digit source $other not recognized"); 0
 
   @annotation.tailrec
   final def executeCode(line: String, code: String): Future[Unit] = code + " " match // Add space for simpler patterns
@@ -110,15 +95,15 @@ class Actor(settings: Settings, actors: Actors, position: Int, codeLines: Vector
 
     case CMD_COPY(source, target) =>
       val sourceDigit = digitSource(source)
-      val targetAddress = targetResolution(target)
+      val targetAddress = target.toInt
       log.info(s"$line COPY #$sourceDigit TO $targetAddress")
       memory(targetAddress) = sourceDigit
       advance()
 
     case CMD_ADD(source, target1, target2) =>
       val sourceDigit = digitSource(source)
-      val target1Address = targetResolution(target1)
-      val target2Address = targetResolution(target2)
+      val target1Address = target1.toInt
+      val target2Address = target2.toInt
       log.info(s"$line ADD #$sourceDigit TO $target1Address,$target2Address")
       val sum = memory(target1Address) + sourceDigit
       memory(target1Address) = sum % 10
